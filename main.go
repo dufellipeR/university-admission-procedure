@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -44,7 +45,7 @@ func main() {
 		fmt.Println("Enter file format:")
 		fileFormat := handleInput()
 
-		//sorter := selectOption()
+		sorter := selectOption()
 
 		err := filepath.Walk(os.Args[1], func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -67,7 +68,21 @@ func main() {
 			keys = append(keys, key)
 		}
 
-		fmt.Println(files)
+		sort.Slice(keys, func(i, j int) bool {
+			if sorter == "1" {
+				return keys[i] > keys[j]
+			} else {
+				return keys[i] < keys[j]
+			}
+		})
+
+		for index := range keys {
+			fmt.Println(keys[index], " bytes")
+			for _, value := range files[keys[index]] {
+				fmt.Println(value)
+			}
+			fmt.Println("")
+		}
 
 		if err != nil {
 			log.Fatal(err)
