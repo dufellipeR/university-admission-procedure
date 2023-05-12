@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -33,6 +35,64 @@ func selectOption() string {
 
 }
 
+func hashFile(path string) []byte {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	md5Hash := md5.New()
+	// Copy the data from 'hello.txt' to the 'md5Hash' interface until reaching EOF:
+	if _, err := io.Copy(md5Hash, file); err != nil {
+		log.Fatal(err)
+	}
+	return md5Hash.Sum(nil)
+}
+
+func checkDuplicates(files map[int64][]string, sortedKeys []int64) {
+	fmt.Println("Check for duplicates?")
+	input := handleInput()
+
+	switch input {
+	case "yes":
+		counter := 1
+		var controller []string
+
+		for _, value := range sortedKeys {
+			duplicated := make(map[string][]string)
+
+			if len(files[value]) > 1 {
+				fmt.Println("")
+				fmt.Println(value, " bytes")
+
+				for _, filePath := range files[value] {
+					hashPath := fmt.Sprintf("%x\n", hashFile(filePath))
+					duplicated[hashPath] = append(duplicated[hashPath], filePath)
+				}
+				for key, hashValue := range duplicated {
+					if len(hashValue) > 1 {
+						fmt.Printf("Hash: %s", key)
+						for index := range hashValue {
+							fmt.Printf("%d. %s \n", counter, hashValue[index])
+							controller = append(controller, hashValue[index])
+							counter++
+						}
+
+					}
+				}
+
+			}
+		}
+	case "no":
+		break
+	default:
+		fmt.Println("Wrong option")
+		checkDuplicates(files, sortedKeys)
+	}
+
+}
+
 func main() {
 
 	files := make(map[int64][]string)
@@ -41,6 +101,7 @@ func main() {
 
 	if len(os.Args) != 2 {
 		fmt.Println("Directory is not specified")
+
 	} else {
 		fmt.Println("Enter file format:")
 		fileFormat := handleInput()
@@ -63,6 +124,9 @@ func main() {
 
 			return nil
 		})
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		for key, _ := range files {
 			keys = append(keys, key)
@@ -84,9 +148,8 @@ func main() {
 			fmt.Println("")
 		}
 
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkDuplicates(files, keys)
+
 	}
 
 }
