@@ -35,10 +35,9 @@ func selectOption() string {
 		return sortOption
 	default:
 		fmt.Println("\nWrong option")
-		selectOption()
+		return selectOption()
 
 	}
-	return ""
 }
 
 func hashFile(path string) []byte {
@@ -80,26 +79,20 @@ func validateFiles(filesToValidate []string, files []string) bool {
 }
 
 func selectFiles(files []string) []string {
-	fmt.Println("\nEnter file numbers to delete:")
-	fileNumbers := handleInput()
-	splitFileNumbers := strings.Split(fileNumbers, " ")
+	isValid := false
+	var splitFileNumbers []string
+	for !isValid {
+		fmt.Println("\nEnter file numbers to delete:")
+		fileNumbers := handleInput()
+		splitFileNumbers = strings.Split(fileNumbers, " ")
 
-	if len(splitFileNumbers) == 0 {
-		fmt.Println("\nWrong format")
-		return selectFiles(files)
-
-	} else if len(splitFileNumbers) > len(files) {
-		fmt.Println("\nWrong format")
-		return selectFiles(files)
-
-	} else {
-		isValid := validateFiles(splitFileNumbers, files)
+		isValid = validateFiles(splitFileNumbers, files)
 
 		if !isValid {
 			fmt.Println("\nWrong format")
-			return selectFiles(files)
 		}
 	}
+
 	return splitFileNumbers
 }
 
@@ -134,9 +127,8 @@ func deleteFiles(files []string) int64 {
 		return 0
 	default:
 		fmt.Println("\nWrong option")
-		deleteFiles(files)
+		return deleteFiles(files)
 	}
-	return 0
 }
 
 func checkDuplicates(files map[int64][]string, sortedKeys []int64) []string {
@@ -202,62 +194,60 @@ func main() {
 
 	if len(os.Args) != 2 {
 		fmt.Println("Directory is not specified")
+		return
+	}
+	fmt.Println("\nEnter file format:")
+	fileFormat := handleInput()
 
-	} else {
-		fmt.Println("\nEnter file format:")
-		fileFormat := handleInput()
+	sorter := selectOption()
+	fmt.Print("\n")
 
-		sorter := selectOption()
-		fmt.Print("\n")
-
-		err := filepath.Walk(os.Args[1], func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			if !info.IsDir() {
-				if fileFormat == "" {
-					files[info.Size()] = append(files[info.Size()], path)
-				} else if filepath.Ext(path) == fileFormat {
-					files[info.Size()] = append(files[info.Size()], path)
-				}
-
-			}
-
-			return nil
-		})
+	err := filepath.Walk(os.Args[1], func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		for key := range files {
-			keys = append(keys, key)
+		if !info.IsDir() {
+			if fileFormat == "" {
+				files[info.Size()] = append(files[info.Size()], path)
+			} else if strings.Trim(filepath.Ext(path), ".") == fileFormat {
+				files[info.Size()] = append(files[info.Size()], path)
+			}
+
 		}
 
-		sort.Slice(keys, func(i, j int) bool {
-			if sorter == "1" {
-				return keys[i] > keys[j]
-			} else {
-				return keys[i] < keys[j]
-			}
-		})
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
 
-		for index := range keys {
-			fmt.Println(keys[index], " bytes")
-			for _, value := range files[keys[index]] {
-				fmt.Println(value)
-			}
-			fmt.Print("\n")
+	for key := range files {
+		keys = append(keys, key)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		if sorter == "1" {
+			return keys[i] > keys[j]
+		} else {
+			return keys[i] < keys[j]
 		}
+	})
 
-		controller := checkDuplicates(files, keys)
+	for index := range keys {
+		fmt.Println(keys[index], " bytes")
+		for _, value := range files[keys[index]] {
+			fmt.Println(value)
+		}
+		fmt.Print("\n")
+	}
 
-		if len(controller) != 0 {
-			freedSpace = deleteFiles(controller)
-			if freedSpace != 0 {
-				fmt.Printf("\nTotal freed up space: %d bytes", freedSpace)
-			}
+	controller := checkDuplicates(files, keys)
 
+	if len(controller) != 0 {
+		freedSpace = deleteFiles(controller)
+		if freedSpace != 0 {
+			fmt.Printf("\nTotal freed up space: %d bytes", freedSpace)
 		}
 
 	}
