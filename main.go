@@ -62,6 +62,20 @@ func readApplicants(applicants *[]Applicant) {
 	}
 }
 
+func sortSubjects(subjects *map[string][]Applicant) []string {
+	var keys []string
+
+	for key := range *subjects {
+		keys = append(keys, key)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	return keys
+}
+
 func main() {
 	maxVacancies, _ := strconv.Atoi(handleInput())
 	var applicants []Applicant
@@ -87,11 +101,12 @@ func main() {
 
 	}
 
-	for key, applicants := range subjects {
-		fmt.Println(key)
-		for _, applicant := range applicants {
-			fmt.Println(applicant.Name, applicant.Gpa)
+	for _, subject := range sortSubjects(&subjects) {
+		fmt.Println(subject)
+		for _, applicant := range subjects[subject] {
+			fmt.Println(applicant.Name, applicant.Surname, applicant.Gpa)
 		}
-		fmt.Println("\n")
+		fmt.Println("")
 	}
+
 }
